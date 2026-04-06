@@ -1,29 +1,47 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "DSCharacter.generated.h"
 
+struct FInputActionValue;
+
 UCLASS()
 class DARKSOUL_API ADSCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	class USpringArmComponent* CameraBoom;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* FollowCamera;
+
+	UPROPERTY(EditAnywhere)
+	class UInputMappingContext* DefaultMappingContext;
+
+	UPROPERTY(EditAnywhere)
+	class UInputAction* MoveAction;
+
+	UPROPERTY(EditAnywhere)
+	class UInputAction* LookAction;
+
 public:
-	// Sets default values for this character's properties
 	ADSCharacter();
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
+	//Controller에 빙의되었을 때 호출되는 함수
+	virtual void NotifyControllerChanged() override;
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+protected:
+	void Move(const FInputActionValue& Values);
+	void Look(const FInputActionValue& Values);
 };
