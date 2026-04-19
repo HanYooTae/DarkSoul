@@ -6,6 +6,8 @@
 #include "EnhancedInputSubSystems.h"
 #include "EnhancedInputComponent.h"
 
+#include "Components/DSAttributeComponent.h"
+
 ADSCharacter::ADSCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -17,6 +19,10 @@ ADSCharacter::ADSCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 
+	// 최대 이동속도 및 감속 속도
+	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f;
@@ -26,6 +32,8 @@ ADSCharacter::ADSCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	AttributeComponent = CreateDefaultSubobject<UDSAttributeComponent>(TEXT("Attribute"));
 }
 
 void ADSCharacter::BeginPlay()
@@ -38,6 +46,8 @@ void ADSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	GEngine->AddOnScreenDebugMessage(0, 1.5f, FColor::Cyan, FString::Printf(TEXT("Stamina : %f"), AttributeComponent->GetBaseStamina()));
+	GEngine->AddOnScreenDebugMessage(1, 1.5f, FColor::Cyan, FString::Printf(TEXT("WalkSpeed : %f"), GetCharacterMovement()->MaxWalkSpeed));
 }
 
 void ADSCharacter::NotifyControllerChanged()
@@ -61,7 +71,20 @@ void ADSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	{
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ThisClass::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ThisClass::Look);
+
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &ThisClass::Sprinting);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ThisClass::StopSprint);
 	}
+}
+
+bool ADSCharacter::IsMoving() const
+{
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		return MovementComponent->Velocity.Size2D() > 3.f && MovementComponent->GetCurrentAcceleration() != FVector::Zero();
+	}
+
+	return false;
 }
 
 void ADSCharacter::Move(const FInputActionValue& Values)
@@ -90,5 +113,26 @@ void ADSCharacter::Look(const FInputActionValue& Values)
 		AddControllerYawInput(LookAxisDirection.X);
 		AddControllerPitchInput(LookAxisDirection.Y);
 	}
+}
+
+void ADSCharacter::Sprinting()
+{
+	if (AttributeComponent->CheckHasEnoughStamina(5.f) && IsMoving())
+	{
+		AttributeComponent->ToggleStaminaRecharge(false);
+
+		GetCharacterMovement()->MaxWalkSpeed = SprintingSpeed;
+		AttributeComponent->DecreaseStamina(0.1f);
+	}
+	else
+	{
+		StopSprint();
+	}
+}
+
+void ADSCharacter::StopSprint()
+{
+	GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+	AttributeComponent->ToggleStaminaRecharge(true);
 }
 

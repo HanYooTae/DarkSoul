@@ -18,14 +18,29 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Input")
 	class UInputMappingContext* DefaultMappingContext;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Input")
 	class UInputAction* MoveAction;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Input")
 	class UInputAction* LookAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	class UInputAction* SprintAction;
+
+private:
+	class UDSAttributeComponent* AttributeComponent;
+
+protected:
+	// 달리기 속도
+	UPROPERTY(EditAnywhere, Category = "Sprinting")
+	float SprintingSpeed = 750.f;
+
+	// 일반 이동 속도
+	UPROPERTY(EditAnywhere, Category = "Sprinting")
+	float NormalSpeed = 500.f;
 
 public:
 	ADSCharacter();
@@ -42,6 +57,11 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
+	bool IsMoving() const;
+
 	void Move(const FInputActionValue& Values);
 	void Look(const FInputActionValue& Values);
+
+	void Sprinting();
+	void StopSprint();
 };
